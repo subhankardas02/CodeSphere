@@ -3,7 +3,9 @@ import java.nio.file.Path;
 
 import org.springframework.stereotype.Service;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 
 @Service 
@@ -28,7 +30,18 @@ public class DockerExecutionService {
         boolean exists=Files.exists(dirPath);
         System.out.println("File saved successfully: " + exists);
     }
-    
+
+    public void testProcessBuilder() throws IOException{
+        ProcessBuilder processBuilder=new ProcessBuilder("cmd", "/c", "echo", "Hello CodeSphere");
+        Process process=processBuilder.start();
+        BufferedReader bufferReader=new BufferedReader(new InputStreamReader(process.getInputStream()));    
+        String message;
+        while((message=bufferReader.readLine())!=null){
+            System.out.println(message);
+        }
+        
+        
+    }
     
 
 }

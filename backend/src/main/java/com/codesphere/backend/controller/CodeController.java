@@ -47,8 +47,8 @@ public class CodeController {
     
     @GetMapping("/api/test")
     public ResponseEntity<String> testDockerService() throws IOException{
-        dockerExecutionService.testSourceCodeSaving();
-        return ResponseEntity.ok("Source Code Saving Test Successful");
+        dockerExecutionService.testProcessBuilder();;
+        return ResponseEntity.ok("Process Builder Test Successful");
 
     }
     
