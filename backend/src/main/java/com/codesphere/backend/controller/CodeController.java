@@ -4,6 +4,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.codesphere.backend.dto.ApiResponse;
 import com.codesphere.backend.dto.CodeRequest;
+import com.codesphere.backend.dto.ExecutionResponse;
 import com.codesphere.backend.service.DockerExecutionService;
 
 import java.io.IOException;
@@ -46,10 +47,9 @@ public class CodeController {
     }
     
     @GetMapping("/api/test")
-    public ResponseEntity<String> testDockerService() throws IOException, InterruptedException{
+    public ResponseEntity<ExecutionResponse> testDockerService() throws IOException, InterruptedException{
         Path tempPath=dockerExecutionService.testSourceCodeSaving();
-        dockerExecutionService.testProcessBuilder(tempPath);
-        return ResponseEntity.ok("Process Builder Test Successful");
+        return ResponseEntity.ok(dockerExecutionService.testProcessBuilder(tempPath));
 
     }
     
