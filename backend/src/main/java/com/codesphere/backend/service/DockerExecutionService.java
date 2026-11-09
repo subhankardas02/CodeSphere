@@ -3,6 +3,8 @@ import java.nio.file.Path;
 
 import org.springframework.stereotype.Service;
 
+import com.codesphere.backend.dto.ExecutionResponse;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -38,21 +40,31 @@ public class DockerExecutionService {
         return dirPath;
     }
 
-    public void testProcessBuilder(Path path) throws IOException, InterruptedException{
+    public ExecutionResponse testProcessBuilder(Path path) throws IOException, InterruptedException{
         String volume_mount=path.toAbsolutePath().toString()+":/app";
 
         ProcessBuilder processBuilder=new ProcessBuilder("docker", "run", "--rm", "-v", volume_mount, "-w", "/app", "gcc:14", "bash", "-c", "g++ main.cpp -o main && ./main");
         processBuilder.redirectErrorStream(true);
         Process process=processBuilder.start();
-        BufferedReader bufferReader=new BufferedReader(new InputStreamReader(process.getInputStream()));    
+        BufferedReader bufferReader=new BufferedReader(new InputStreamReader(process.getInputStream()));
         String message;
+        StringBuilder tempOutput=new StringBuilder();
         while((message=bufferReader.readLine())!=null){
-            System.out.println(message);
+            tempOutput=tempOutput.append(message).append("\n");
         }
         int exitCode=process.waitFor();
         System.out.println(exitCode);
+        ExecutionResponse executionResponse=new ExecutionResponse();
+        executionResponse.setExitCode(exitCode);
+        executionResponse.setOutput(tempOutput.toString());
+        if(exitCode==0){
+            executionResponse.setSuccess(true);
+        }
+        else{
+            executionResponse.setSuccess(false);
+        }
         
-        
+        return executionResponse;
     }
     
 
