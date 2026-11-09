@@ -27,12 +27,12 @@ public class DockerExecutionService {
     public Path testSourceCodeSaving() throws IOException{
         Path dirPath=createTempDirectory();
         String content =
-    "#include <iostream>\n" +
-    "using namespace std;\n" +
-    "int main() {\n" +
-    "    cout << \"hello world\" << endl;\n" +
-    "    return 0;\n" +
-    "}\n";
+            "#include <iostream>\n" +
+            "using namespace std;\n" +
+            "int main() {\n" +
+            "    cout << \"hello world\" << endl;\n" +
+            "    return 0;\n" +
+            "}\n";
         saveSourceCode(dirPath, content);
         Path filePath=dirPath.resolve("main.cpp");
         boolean exists=Files.exists(filePath);
@@ -44,15 +44,39 @@ public class DockerExecutionService {
         String volume_mount=path.toAbsolutePath().toString()+":/app";
 
         ProcessBuilder processBuilder=new ProcessBuilder("docker", "run", "--rm", "-v", volume_mount, "-w", "/app", "gcc:14", "bash", "-c", "g++ main.cpp -o main && ./main");
-        processBuilder.redirectErrorStream(true);
+
         Process process=processBuilder.start();
         BufferedReader bufferReader=new BufferedReader(new InputStreamReader(process.getInputStream()));
-        String message;
+        BufferedReader errorReader=new BufferedReader(new InputStreamReader(process.getErrorStream()));
         StringBuilder tempOutput=new StringBuilder();
-        while((message=bufferReader.readLine())!=null){
-            tempOutput=tempOutput.append(message).append("\n");
-        }
+        StringBuilder tempError=new StringBuilder();
+        Thread thread1=new Thread(()->{
+            try{
+                String message;
+                while ((message = bufferReader.readLine()) != null) {
+                    tempOutput.append(message).append("\n");
+                }
+            } 
+            catch(IOException e) {
+                e.printStackTrace();
+                }
+        });
+        Thread thread2=new Thread(()->{
+            try{
+                String message;
+                while((message=errorReader.readLine())!=null){
+                    tempError.append(message).append("\n");
+                }
+            }
+            catch(IOException e){
+                e.printStackTrace();
+            }
+        });
+        thread1.start();
+        thread2.start();
         int exitCode=process.waitFor();
+        thread1.join();
+        thread2.join();
         System.out.println(exitCode);
         ExecutionResponse executionResponse=new ExecutionResponse();
         executionResponse.setExitCode(exitCode);
@@ -63,7 +87,9 @@ public class DockerExecutionService {
         else{
             executionResponse.setSuccess(false);
         }
-        
+        executionResponse.setError(tempError.toString());
+        bufferReader.close();
+        errorReader.close();
         return executionResponse;
     }
     
