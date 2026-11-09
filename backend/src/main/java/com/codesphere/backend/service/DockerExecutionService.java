@@ -22,23 +22,35 @@ public class DockerExecutionService {
         Files.writeString(tempFile, content);
 
     }
-    public void testSourceCodeSaving() throws IOException{
+    public Path testSourceCodeSaving() throws IOException{
         Path dirPath=createTempDirectory();
-        String content="#include<iostream> using namespace std; int main(){cout<<\"hello world\"<<endl;}";
+        String content =
+    "#include <iostream>\n" +
+    "using namespace std;\n" +
+    "int main() {\n" +
+    "    cout << \"hello world\" << endl;\n" +
+    "    return 0;\n" +
+    "}\n";
         saveSourceCode(dirPath, content);
-        dirPath=dirPath.resolve("main.cpp");
-        boolean exists=Files.exists(dirPath);
+        Path filePath=dirPath.resolve("main.cpp");
+        boolean exists=Files.exists(filePath);
         System.out.println("File saved successfully: " + exists);
+        return dirPath;
     }
 
-    public void testProcessBuilder() throws IOException{
-        ProcessBuilder processBuilder=new ProcessBuilder("cmd", "/c", "echo", "Hello CodeSphere");
+    public void testProcessBuilder(Path path) throws IOException, InterruptedException{
+        String volume_mount=path.toAbsolutePath().toString()+":/app";
+
+        ProcessBuilder processBuilder=new ProcessBuilder("docker", "run", "--rm", "-v", volume_mount, "-w", "/app", "gcc:14", "bash", "-c", "g++ main.cpp -o main && ./main");
+        processBuilder.redirectErrorStream(true);
         Process process=processBuilder.start();
         BufferedReader bufferReader=new BufferedReader(new InputStreamReader(process.getInputStream()));    
         String message;
         while((message=bufferReader.readLine())!=null){
             System.out.println(message);
         }
+        int exitCode=process.waitFor();
+        System.out.println(exitCode);
         
         
     }
