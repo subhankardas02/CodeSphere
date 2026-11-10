@@ -18,7 +18,7 @@ function App() {
 using namespace std;
 
 int main() {
-    // Type your code hear...
+    // Type your code here...
 }`)
   const [history, setHistory] = useState<Execution[]>([])
   const fetchHistory = async () => {
