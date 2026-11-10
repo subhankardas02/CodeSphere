@@ -1,41 +1,93 @@
-nav{
+
+/* Navigation Bar */
+
+nav {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 15px 30px;
   background-color: #1e1e1e;
   color: white;
-
 }
-nav span{
+
+nav span {
   background-color: #333333;
   padding: 8px 16px;
   border-radius: 6px;
   font-size: 14px;
   cursor: pointer;
-
 }
-.app-container{
+
+/* Main Container */
+
+.app-container {
   min-height: 100vh;
   background-color: #121212;
 }
-main{
+
+main {
   padding: 25px 30px;
   color: white;
 }
-main h2{
+
+main h2 {
   font-size: 20px;
   margin-bottom: 20px;
 }
-.editor-container{
+
+/* Workspace Layout */
+
+.workspace {
+  display: flex;
+  gap: 20px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.editor-section {
+  flex: 2;
+  min-width: 0;
+}
+
+.terminal-section {
+  flex: 1;
+  min-width: 0;
+  height: 400px;
   background-color: #1e1e1e;
-  min-height: 400px;
-  padding: 20px;
   border: 1px solid #333333;
   border-radius: 8px;
-  color: #888888;
+  overflow: hidden;
+  box-sizing: border-box;
 }
-button{
+
+/* Code Editor */
+
+.editor-container {
+  height: 400px;
+  background-color: #1e1e1e;
+  border: 1px solid #333333;
+  border-radius: 8px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.editor-container textarea {
+  width: 100%;
+  height: 100%;
+  background-color: #181818;
+  color: white;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: monospace;
+  font-size: 15px;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+/* Run Button */
+
+button {
   background-color: #2563eb;
   color: white;
   padding: 10px 24px;
@@ -45,6 +97,82 @@ button{
   font-size: 14px;
   cursor: pointer;
 }
-button:hover{
+
+button:hover {
   background-color: #1d4ed8;
+}
+
+/* Terminal */
+
+.terminal-header {
+  background-color: #252525;
+  color: white;
+  padding: 12px 15px;
+  font-size: 14px;
+  border-bottom: 1px solid #333333;
+}
+
+.terminal-section .output-panel {
+  background-color: #1e1e1e;
+  height: calc(100% - 43px);
+  padding: 20px;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  color: white;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.output-panel p {
+  color: #4ade80;
+  font-family: monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Responsive Design */
+
+@media (max-width: 768px) {
+  .workspace {
+    flex-direction: column;
+  }
+
+  .editor-section,
+  .terminal-section {
+    width: 100%;
+    flex: auto;
+  }
+}
+.output-panel .placeholder {
+  color: #888888;
+}
+/* Execution History */
+.history-section {
+  margin-top: 30px;
+  padding: 20px;
+  background-color: #1e1e1e;
+  border: 1px solid #333333;
+  border-radius: 8px;
+  color: white;
+}
+
+.history-section h2 {
+  font-size: 18px;
+  margin-bottom: 15px;
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px;
+  margin-bottom: 10px;
+  background-color: #252525;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.history-item span:last-child {
+  color: #4ade80;
 }
