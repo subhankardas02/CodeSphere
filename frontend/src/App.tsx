@@ -20,10 +20,13 @@ using namespace std;
 int main() {
     // Type your code hear...
 }`)
+    console.log('Backend URL:', import.meta.env.VITE_API_URL)
   const [history, setHistory] = useState<Execution[]>([])
   const fetchHistory = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/code/history')
+      const response = await fetch(
+  `${import.meta.env.VITE_API_URL}/api/code/history`
+)
       const data: Execution[] = await response.json()
 
       setHistory(data)
@@ -38,7 +41,9 @@ int main() {
 
   const handleRun = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/code/submit', {
+      const response = await fetch(
+  `${import.meta.env.VITE_API_URL}/api/code/submit`,
+  {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
