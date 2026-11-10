@@ -22,6 +22,9 @@ int main() {
 }`)
   const [history, setHistory] = useState<Execution[]>([])
   const fetchHistory = async () => {
+    if (!import.meta.env.VITE_API_URL) {
+  return
+}
     try {
       const response = await fetch(
   `${import.meta.env.VITE_API_URL}/api/code/history`
@@ -39,6 +42,10 @@ int main() {
   }, [])
 
   const handleRun = async () => {
+    if (!import.meta.env.VITE_API_URL) {
+    setOutput('Code execution is not available in the public demo yet.')
+    return
+  }
     try {
       const response = await fetch(
   `${import.meta.env.VITE_API_URL}/api/code/submit`,
