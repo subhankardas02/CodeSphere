@@ -1,17 +1,26 @@
 package com.codesphere.backend.service;
 import java.nio.file.Path;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.stereotype.Service;
 
 import com.codesphere.backend.dto.ExecutionResponse;
+import com.codesphere.backend.repository.ExecutionRepository;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 
+import com.codesphere.backend.entity.Execution;
+
 @Service 
 public class DockerExecutionService {
+    private final ExecutionRepository executionRepository;
+
+    public DockerExecutionService(ExecutionRepository executionRepository){
+        this.executionRepository=executionRepository;
+    }
 
     public Path createTempDirectory() throws IOException{
         Path tempPath=Files.createTempDirectory("codesphere-");
@@ -33,6 +42,7 @@ public class DockerExecutionService {
             "    cout << \"hello world\" << endl;\n" +
             "    return 0;\n" +
             "}\n";
+            
         saveSourceCode(dirPath, content);
         Path filePath=dirPath.resolve("main.cpp");
         boolean exists=Files.exists(filePath);
@@ -74,24 +84,60 @@ public class DockerExecutionService {
         });
         thread1.start();
         thread2.start();
-        int exitCode=process.waitFor();
+        boolean completed = process.waitFor(5, TimeUnit.SECONDS);
+
+        int exitCode;
+
+        if(completed) {
+            exitCode = process.exitValue();
+        } 
+        else{
+            process.destroyForcibly();
+            process.waitFor();
+            exitCode = -1;
+        }
         thread1.join();
         thread2.join();
         System.out.println(exitCode);
         ExecutionResponse executionResponse=new ExecutionResponse();
         executionResponse.setExitCode(exitCode);
         executionResponse.setOutput(tempOutput.toString());
-        if(exitCode==0){
-            executionResponse.setSuccess(true);
-        }
-        else{
-            executionResponse.setSuccess(false);
-        }
         executionResponse.setError(tempError.toString());
+        if (completed) {
+            executionResponse.setSuccess(exitCode == 0);
+        } 
+        else {
+            executionResponse.setSuccess(false);
+            executionResponse.setError("Execution timed out after 5 seconds.");
+        }
         bufferReader.close();
         errorReader.close();
         return executionResponse;
     }
-    
 
+    public ExecutionResponse executeCode(String code) throws IOException, InterruptedException{
+        Path dirPath=createTempDirectory();
+        saveSourceCode(dirPath, code);
+        ExecutionResponse executionResponse=testProcessBuilder(dirPath);
+        Execution execution=new Execution();
+        execution.setLanguage("cpp");
+        execution.setSourceCode(code);
+        execution.setOutput(executionResponse.getOutput());
+        execution.setError(executionResponse.getError());
+        execution.setExitCode(executionResponse.getExitCode());
+        if(executionResponse.isSuccess()){
+            execution.setStatus("SUCCESS");
+        }
+        else if(executionResponse.getExitCode()==-1){
+            execution.setStatus("TIMEOUT");
+        }
+        else{
+            execution.setStatus("FAILED");
+        }
+        
+        executionRepository.save(execution);
+
+        return executionResponse;
+    }
+        
 }
