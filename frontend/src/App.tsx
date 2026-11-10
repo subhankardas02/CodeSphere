@@ -20,7 +20,6 @@ using namespace std;
 int main() {
     // Type your code hear...
 }`)
-    console.log('Backend URL:', import.meta.env.VITE_API_URL)
   const [history, setHistory] = useState<Execution[]>([])
   const fetchHistory = async () => {
     try {
