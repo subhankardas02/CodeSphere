@@ -10,6 +10,7 @@ import com.codesphere.backend.repository.ExecutionRepository;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
 import com.codesphere.backend.entity.Execution;
@@ -50,11 +51,11 @@ public class DockerExecutionService {
         return dirPath;
     }
 
-    public ExecutionResponse testProcessBuilder(Path path) throws IOException, InterruptedException{
+    public ExecutionResponse testProcessBuilder(Path path, String input) throws IOException, InterruptedException{
         String volume_mount=path.toAbsolutePath().toString()+":/app";
-
-        ProcessBuilder processBuilder=new ProcessBuilder("docker", "run", "--rm", "-v", volume_mount, "-w", "/app", "gcc:14", "bash", "-c", "g++ main.cpp -o main && ./main");
-
+        
+        ProcessBuilder processBuilder=new ProcessBuilder("docker", "run", "-i", "--rm", "-v", volume_mount, "-w", "/app", "gcc:14", "bash", "-c", "g++ main.cpp -o main && ./main");
+        
         Process process=processBuilder.start();
         BufferedReader bufferReader=new BufferedReader(new InputStreamReader(process.getInputStream()));
         BufferedReader errorReader=new BufferedReader(new InputStreamReader(process.getErrorStream()));
@@ -69,7 +70,7 @@ public class DockerExecutionService {
             } 
             catch(IOException e) {
                 e.printStackTrace();
-                }
+            }
         });
         Thread thread2=new Thread(()->{
             try{
@@ -84,8 +85,10 @@ public class DockerExecutionService {
         });
         thread1.start();
         thread2.start();
+        process.getOutputStream().write(input.getBytes(StandardCharsets.UTF_8));
+        process.getOutputStream().close();
         boolean completed = process.waitFor(5, TimeUnit.SECONDS);
-
+            
         int exitCode;
 
         if(completed) {
@@ -115,10 +118,10 @@ public class DockerExecutionService {
         return executionResponse;
     }
 
-    public ExecutionResponse executeCode(String code) throws IOException, InterruptedException{
+    public ExecutionResponse executeCode(String code, String input) throws IOException, InterruptedException{
         Path dirPath=createTempDirectory();
         saveSourceCode(dirPath, code);
-        ExecutionResponse executionResponse=testProcessBuilder(dirPath);
+        ExecutionResponse executionResponse=testProcessBuilder(dirPath, input);
         Execution execution=new Execution();
         execution.setLanguage("cpp");
         execution.setSourceCode(code);

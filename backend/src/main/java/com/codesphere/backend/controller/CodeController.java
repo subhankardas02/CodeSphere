@@ -51,7 +51,7 @@ public class CodeController {
         }
 
         try {
-            ExecutionResponse executionResponse=dockerExecutionService.executeCode(request.getCode());
+            ExecutionResponse executionResponse=dockerExecutionService.executeCode(request.getCode(), request.getInput());
             return ResponseEntity.ok(executionResponse);
         } catch (IOException | InterruptedException e) {
             if(e instanceof InterruptedException){
@@ -65,7 +65,7 @@ public class CodeController {
     @GetMapping("/api/test")
     public ResponseEntity<ExecutionResponse> testDockerService() throws IOException, InterruptedException{
         Path tempPath=dockerExecutionService.testSourceCodeSaving();
-        return ResponseEntity.ok(dockerExecutionService.testProcessBuilder(tempPath));
+        return ResponseEntity.ok(dockerExecutionService.testProcessBuilder(tempPath, ""));
 
     }
 

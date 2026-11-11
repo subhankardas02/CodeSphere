@@ -4,6 +4,7 @@ package com.codesphere.backend.dto;
 public class CodeRequest {
     private String language;
     private String code;
+    private String input;
     
     public void setLanguage(String language) {
         this.language=language;
@@ -20,5 +21,13 @@ public class CodeRequest {
     public String getCode(){
         return code;
     }
+    
+    public void setInput(String input){
+        this.input=input;
+    }
+    public String getInput(){
+        return input;
+    }
+
 
 }
