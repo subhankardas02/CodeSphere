@@ -17,6 +17,8 @@ interface Execution {
 function App() {
   const [output, setOutput] = useState('')
   const [input, setInput] = useState('')
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   const [code, setCode] = useState(`#include <iostream>
 using namespace std;
@@ -27,22 +29,27 @@ int main() {
 
   const [history, setHistory] = useState<Execution[]>([])
 
-  const fetchHistory = async () => {
+
+  const fetchHistory = async (pageNumber: number = 0) => {
     if (!import.meta.env.VITE_API_URL) {
       return
     }
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/code/history`
+        `${import.meta.env.VITE_API_URL}/api/code/history?page=${pageNumber}&size=10`
       )
 
-      const data: Execution[] = await response.json()
-      setHistory(data)
+      const data = await response.json()
+
+      setHistory(data.content)
+      setCurrentPage(data.number)
+      setTotalPages(data.totalPages)
     } catch (error) {
       console.error('Failed to fetch execution history:', error)
     }
   }
+
 
   useEffect(() => {
     fetchHistory()
@@ -176,6 +183,25 @@ int main() {
           )}
 
         </section>
+        <div className="pagination">
+          <button
+            onClick={() => fetchHistory(currentPage - 1)}
+            disabled={currentPage === 0}
+          >
+            Previous
+          </button>
+
+          <span>
+            Page {currentPage + 1} of {totalPages}
+          </span>
+
+          <button
+            onClick={() => fetchHistory(currentPage + 1)}
+            disabled={currentPage >= totalPages - 1}
+          >
+            Next
+          </button>
+        </div>
 
       </main>
     </div>
