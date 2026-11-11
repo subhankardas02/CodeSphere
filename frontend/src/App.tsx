@@ -1,6 +1,8 @@
+
 import { useEffect, useState } from 'react'
 import Editor from '@monaco-editor/react'
 import './App.css'
+
 interface Execution {
   id: number;
   language: string;
@@ -14,23 +16,28 @@ interface Execution {
 
 function App() {
   const [output, setOutput] = useState('')
+  const [input, setInput] = useState('')
+
   const [code, setCode] = useState(`#include <iostream>
 using namespace std;
 
 int main() {
     // Type your code here...
 }`)
+
   const [history, setHistory] = useState<Execution[]>([])
+
   const fetchHistory = async () => {
     if (!import.meta.env.VITE_API_URL) {
-  return
-}
+      return
+    }
+
     try {
       const response = await fetch(
-  `${import.meta.env.VITE_API_URL}/api/code/history`
-)
-      const data: Execution[] = await response.json()
+        `${import.meta.env.VITE_API_URL}/api/code/history`
+      )
 
+      const data: Execution[] = await response.json()
       setHistory(data)
     } catch (error) {
       console.error('Failed to fetch execution history:', error)
@@ -43,22 +50,25 @@ int main() {
 
   const handleRun = async () => {
     if (!import.meta.env.VITE_API_URL) {
-    setOutput('Code execution is not available in the public demo yet.')
-    return
-  }
+      setOutput('Code execution is not available in the public demo yet.')
+      return
+    }
+
     try {
       const response = await fetch(
-  `${import.meta.env.VITE_API_URL}/api/code/submit`,
-  {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          language: 'cpp',
-          code: code,
-        }),
-      })
+        `${import.meta.env.VITE_API_URL}/api/code/submit`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            language: 'cpp',
+            code: code,
+            input: input,
+          }),
+        }
+      )
 
       const result = await response.json()
 
@@ -67,6 +77,7 @@ int main() {
           ? result.output
           : result.error || result.message || 'Execution failed'
       )
+
       await fetchHistory()
     } catch (error) {
       setOutput('Unable to connect to the backend.')
@@ -80,12 +91,16 @@ int main() {
         <h1>CodeSphere</h1>
         <span>C++</span>
       </nav>
+
       <main>
         <h2>Code Editor</h2>
 
         <div className="workspace">
 
+          {/* Left: Code Editor */}
+
           <div className="editor-section">
+
             <div className="editor-container">
               <Editor
                 height="400px"
@@ -106,9 +121,25 @@ int main() {
             <button onClick={handleRun}>
               Run Code
             </button>
+
           </div>
 
+          {/* Right: Input and Terminal */}
+
           <div className="terminal-section">
+
+            <div className="stdin-section">
+              <h3>Program Input (stdin)</h3>
+
+              <textarea
+                className="stdin-input"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Enter program input..."
+                rows={3}
+              />
+            </div>
+
             <div className="terminal-header">
               Terminal
             </div>
@@ -117,12 +148,18 @@ int main() {
               {output ? (
                 <p>{output}</p>
               ) : (
-                <p className="placeholder">Output will appear here...</p>
+                <p className="placeholder">
+                  Output will appear here...
+                </p>
               )}
             </div>
+
           </div>
 
         </div>
+
+        {/* Execution History */}
+
         <section className="history-section">
           <h2>Execution History</h2>
 
@@ -137,11 +174,12 @@ int main() {
               </div>
             ))
           )}
+
         </section>
+
       </main>
     </div>
   )
-
 }
 
 export default App

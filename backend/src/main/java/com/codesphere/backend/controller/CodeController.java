@@ -1,4 +1,5 @@
 package com.codesphere.backend.controller;
+
 import java.nio.file.Path;
 import java.util.List;
 
@@ -20,30 +21,28 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
-
-
-@CrossOrigin (origins = "http://localhost:5173")
-@RestController 
+@CrossOrigin(origins = "http://localhost:5173")
+@RestController
 public class CodeController {
     private final DockerExecutionService dockerExecutionService;
     private final ExecutionRepository executionRepository;
 
-    public CodeController(DockerExecutionService dockerExecutionService, ExecutionRepository executionRepository){
-        this.dockerExecutionService=dockerExecutionService;
-        this.executionRepository=executionRepository;
+    public CodeController(DockerExecutionService dockerExecutionService, ExecutionRepository executionRepository) {
+        this.dockerExecutionService = dockerExecutionService;
+        this.executionRepository = executionRepository;
 
     }
 
     @PostMapping("/api/code/submit")
     public ResponseEntity<?> submitCode(@RequestBody CodeRequest request) {
-        ApiResponse apiResponse=new ApiResponse();
-        if(!"cpp".equals(request.getLanguage())){
+        ApiResponse apiResponse = new ApiResponse();
+        if (!"cpp".equals(request.getLanguage())) {
             apiResponse.setSuccess(false);
             apiResponse.setMessage("Unsupported Language");
             apiResponse.setLanguage(request.getLanguage());
             return ResponseEntity.badRequest().body(apiResponse);
         }
-        if(request.getCode()==null || request.getCode().isBlank()){
+        if (request.getCode() == null || request.getCode().isBlank()) {
             apiResponse.setSuccess(false);
             apiResponse.setMessage("Code cannot be empty");
             apiResponse.setLanguage(request.getLanguage());
@@ -51,20 +50,22 @@ public class CodeController {
         }
 
         try {
-            ExecutionResponse executionResponse=dockerExecutionService.executeCode(request.getCode(), request.getInput());
+            String userInput = request.getInput() == null ? "" : request.getInput();
+
+            ExecutionResponse executionResponse = dockerExecutionService.executeCode(request.getCode(), userInput);
             return ResponseEntity.ok(executionResponse);
         } catch (IOException | InterruptedException e) {
-            if(e instanceof InterruptedException){
+            if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
             return ResponseEntity.internalServerError().build();
         }
 
     }
-    
+
     @GetMapping("/api/test")
-    public ResponseEntity<ExecutionResponse> testDockerService() throws IOException, InterruptedException{
-        Path tempPath=dockerExecutionService.testSourceCodeSaving();
+    public ResponseEntity<ExecutionResponse> testDockerService() throws IOException, InterruptedException {
+        Path tempPath = dockerExecutionService.testSourceCodeSaving();
         return ResponseEntity.ok(dockerExecutionService.testProcessBuilder(tempPath, ""));
 
     }
@@ -74,9 +75,5 @@ public class CodeController {
 
         return executionRepository.findAll();
     }
-    
-    
-    
-
 
 }
