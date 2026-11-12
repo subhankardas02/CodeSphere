@@ -18,9 +18,11 @@ import com.codesphere.backend.entity.Execution;
 @Service 
 public class DockerExecutionService {
     private final ExecutionRepository executionRepository;
+    private final RedisService redisService;
 
-    public DockerExecutionService(ExecutionRepository executionRepository){
+    public DockerExecutionService(ExecutionRepository executionRepository, RedisService redisService){
         this.executionRepository=executionRepository;
+        this.redisService=redisService;
     }
 
     public Path createTempDirectory() throws IOException{
@@ -138,7 +140,9 @@ public class DockerExecutionService {
             execution.setStatus("FAILED");
         }
         
-        executionRepository.save(execution);
+        Execution savExecution=executionRepository.save(execution);
+        redisService.setValueExpiry("execution:"+savExecution.getId(), savExecution.getStatus(), 3600);
+
 
         return executionResponse;
     }
