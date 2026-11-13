@@ -55,6 +55,7 @@ int main() {
     fetchHistory()
   }, [])
 
+
   const handleRun = async () => {
     if (!import.meta.env.VITE_API_URL) {
       setOutput('Code execution is not available in the public demo yet.')
@@ -62,6 +63,8 @@ int main() {
     }
 
     try {
+      setOutput('Submitting code...')
+
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/api/code/submit`,
         {
@@ -77,19 +80,53 @@ int main() {
         }
       )
 
+      if (!response.ok) {
+        throw new Error('Code submission failed')
+      }
+
       const result = await response.json()
+      const jobId = result.jobId
 
-      setOutput(
-        result.success
-          ? result.output
-          : result.error || result.message || 'Execution failed'
-      )
+      setOutput('Code submitted. Waiting for execution...')
 
-      await fetchHistory()
+      // Poll the status endpoint
+      while (true) {
+        await new Promise(resolve => setTimeout(resolve, 1000))
+
+        const statusResponse = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/code/status/${jobId}`
+        )
+
+        if (!statusResponse.ok) {
+          throw new Error('Unable to fetch execution status')
+        }
+
+        const statusResult = await statusResponse.json()
+
+        if (
+          statusResult.status === 'SUCCESS' ||
+          statusResult.status === 'FAILED' ||
+          statusResult.status === 'TIMEOUT'
+        ) {
+          if (statusResult.status === 'SUCCESS') {
+            setOutput(
+              statusResult.output || 'Program executed successfully (no output).'
+            )
+          } else {
+            setOutput(
+              statusResult.error || statusResult.output || 'Execution failed'
+            )
+          }
+
+          await fetchHistory()
+          break
+        }
+      }
     } catch (error) {
-      setOutput('Unable to connect to the backend.')
+      setOutput('Unable to execute code or connect to the backend.')
     }
   }
+
 
   return (
     <div className="app-container">

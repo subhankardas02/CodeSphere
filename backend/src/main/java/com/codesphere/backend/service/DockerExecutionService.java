@@ -4,6 +4,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.springframework.stereotype.Service;
 
+import com.codesphere.backend.dto.ExecutionJob;
 import com.codesphere.backend.dto.ExecutionResponse;
 import com.codesphere.backend.repository.ExecutionRepository;
 
@@ -123,28 +124,49 @@ public class DockerExecutionService {
     public ExecutionResponse executeCode(String code, String input) throws IOException, InterruptedException{
         Path dirPath=createTempDirectory();
         saveSourceCode(dirPath, code);
-        ExecutionResponse executionResponse=testProcessBuilder(dirPath, input);
         Execution execution=new Execution();
+        execution.setStatus("QUEUED");
         execution.setLanguage("cpp");
         execution.setSourceCode(code);
-        execution.setOutput(executionResponse.getOutput());
-        execution.setError(executionResponse.getError());
-        execution.setExitCode(executionResponse.getExitCode());
+        Execution savedExecution=executionRepository.save(execution);
+        ExecutionResponse executionResponse=testProcessBuilder(dirPath, input);
+        savedExecution.setOutput(executionResponse.getOutput());
+        savedExecution.setError(executionResponse.getError());
+        savedExecution.setExitCode(executionResponse.getExitCode());
         if(executionResponse.isSuccess()){
-            execution.setStatus("SUCCESS");
+            savedExecution.setStatus("SUCCESS");
         }
         else if(executionResponse.getExitCode()==-1){
-            execution.setStatus("TIMEOUT");
+            savedExecution.setStatus("TIMEOUT");
         }
         else{
-            execution.setStatus("FAILED");
+            savedExecution.setStatus("FAILED");
         }
-        
-        Execution savExecution=executionRepository.save(execution);
-        redisService.setValueExpiry("execution:"+savExecution.getId(), savExecution.getStatus(), 3600);
+        executionRepository.save(savedExecution);
+        ExecutionJob executionJob=new ExecutionJob(savedExecution.getId(), "cpp", code, input);
+
+        redisService.setValueExpiry("execution:"+savedExecution.getId(), savedExecution.getStatus(), 3600);
 
 
         return executionResponse;
+    }
+
+    public Long submitJob(String code, String input){
+        Execution execution=new Execution();
+        execution.setLanguage("cpp");
+        execution.setSourceCode(code);
+        execution.setStatus("QUEUED");
+        Execution savedExecution=executionRepository.save(execution);
+        ExecutionJob executionJob=new ExecutionJob(savedExecution.getId(), "cpp", code, input);
+        redisService.enqueueJob(executionJob);
+        return savedExecution.getId();
+    }
+
+    public ExecutionResponse runCode(String code, String input) throws IOException, InterruptedException {
+        Path dirPath=createTempDirectory();
+        saveSourceCode(dirPath, code);
+        return testProcessBuilder(dirPath, input);
+
     }
         
 }

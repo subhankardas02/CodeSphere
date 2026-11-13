@@ -2,12 +2,14 @@ package com.codesphere.backend.controller;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.web.bind.annotation.RestController;
 
 import com.codesphere.backend.dto.ApiResponse;
 import com.codesphere.backend.dto.CodeRequest;
 import com.codesphere.backend.dto.ExecutionResponse;
+import com.codesphere.backend.dto.JobStatusResponse;
 import com.codesphere.backend.entity.Execution;
 import com.codesphere.backend.repository.ExecutionRepository;
 import com.codesphere.backend.service.DockerExecutionService;
@@ -21,6 +23,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -55,13 +58,10 @@ public class CodeController {
 
         try {
             String userInput = request.getInput() == null ? "" : request.getInput();
+            Long jobId = dockerExecutionService.submitJob(request.getCode(), userInput);
 
-            ExecutionResponse executionResponse = dockerExecutionService.executeCode(request.getCode(), userInput);
-            return ResponseEntity.ok(executionResponse);
-        } catch (IOException | InterruptedException e) {
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
+            return ResponseEntity.accepted().body(Map.of("jobId", jobId, "status", "QUEUED"));
+        } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
 
@@ -80,5 +80,22 @@ public class CodeController {
 
         return executionRepository.findAll(pageable);
     }
+
+    @GetMapping("/api/code/status/{jobId}")
+    public ResponseEntity<JobStatusResponse> getJobStatus(@PathVariable Long jobId) {
+        Execution execution=executionRepository.findById(jobId).orElse(null);
+        if(execution==null){
+            return ResponseEntity.notFound().build();
+        }
+        JobStatusResponse response=new JobStatusResponse();
+        response.setJobId(execution.getId());
+        response.setError(execution.getError());
+        response.setExitCode(execution.getExitCode());
+        response.setOutput(execution.getOutput());
+        response.setStatus(execution.getStatus());
+        return ResponseEntity.ok(response);
+
+    }
+    
 
 }
