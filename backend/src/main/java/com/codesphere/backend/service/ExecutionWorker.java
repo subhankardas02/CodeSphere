@@ -8,6 +8,13 @@ import com.codesphere.backend.dto.ExecutionJob;
 import com.codesphere.backend.dto.ExecutionResponse;
 import com.codesphere.backend.entity.Execution;
 import com.codesphere.backend.repository.ExecutionRepository;
+
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,7 +24,21 @@ public class ExecutionWorker {
     private final RedisService redisService;
     private final DockerExecutionService dockerExecutionService;
     private final ExecutionRepository executionRepository;
-    private static final Logger logger=LoggerFactory.getLogger(ExecutionWorker.class);
+    private static final Logger logger = LoggerFactory.getLogger(ExecutionWorker.class);
+    private final ScheduledExecutorService leaseScheduler = Executors.newSingleThreadScheduledExecutor();
+
+    private ScheduledFuture<?> startLeaseRenewal(ExecutionJob job) {
+        return leaseScheduler.scheduleAtFixedRate(() -> {
+            try {
+                redisService.renewJobLease(job.getJobId());
+            } catch (Exception e) {
+                logger.error(
+                        "Failed to renew lease for job {}",
+                        job.getJobId(),
+                        e);
+            }
+        }, 10, 10, TimeUnit.SECONDS);
+    }
 
     public ExecutionWorker(RedisService redisService, DockerExecutionService dockerExecutionService,
             ExecutionRepository executionRepository) {
@@ -36,33 +57,51 @@ public class ExecutionWorker {
                 .orElseThrow(() -> new RuntimeException("Execution not found"));
         execution.setStatus("RUNNING");
         executionRepository.save(execution);
-        ExecutionResponse response;
+        ScheduledFuture<?> leaseTask = startLeaseRenewal(job);
         try {
-            response = dockerExecutionService.runCode(job.getCode(), job.getInput());
-        } catch (Exception e) {
-            logger.error("Execution job {} failed unexpectedly", job.getJobId(), e);
-            execution.setStatus("FAILED");
-            execution.setError("Execution failed: " + e.getMessage());
-            executionRepository.save(execution);
-            redisService.setValueExpiry(
-                    "execution:" + job.getJobId(),
-                    "FAILED",
-                    3600);
-            return;
-        }
-        execution.setOutput(response.getOutput());
-        execution.setError(response.getError());
-        execution.setExitCode(response.getExitCode());
-        if (response.isSuccess()) {
-            execution.setStatus("SUCCESS");
-        } else if (response.getExitCode() == -1) {
-            execution.setStatus("TIMEOUT");
-        } else {
-            execution.setStatus("FAILED");
-        }
-        executionRepository.save(execution);
-        redisService.setValueExpiry("execution:" + job.getJobId(), execution.getStatus(), 3600);
 
+            ExecutionResponse response;
+            try {
+                response = dockerExecutionService.runCode(job.getCode(), job.getInput());
+            } catch (Exception e) {
+                logger.error("Execution job {} failed unexpectedly", job.getJobId(), e);
+                execution.setStatus("FAILED");
+                execution.setError("Execution failed: " + e.getMessage());
+                executionRepository.save(execution);
+                redisService.setValueExpiry(
+                        "execution:" + job.getJobId(),
+                        "FAILED",
+                        3600);
+                redisService.acknowledgeJob(job);
+                return;
+            }
+            execution.setOutput(response.getOutput());
+            execution.setError(response.getError());
+            execution.setExitCode(response.getExitCode());
+            if (response.isSuccess()) {
+                execution.setStatus("SUCCESS");
+            } else if (response.getExitCode() == -1) {
+                execution.setStatus("TIMEOUT");
+            } else {
+                execution.setStatus("FAILED");
+            }
+            executionRepository.save(execution);
+            redisService.setValueExpiry("execution:" + job.getJobId(), execution.getStatus(), 3600);
+            redisService.acknowledgeJob(job);
+        } finally {
+            leaseTask.cancel(false);
+        }
+    }
+
+    @Scheduled(fixedDelay = 5000)
+    public void recoverExpiredJobs(){
+        Set<String> expiredJobIds=redisService.getExpiredJobIds();
+        for(String jobId: expiredJobIds){
+            Long result=redisService.recoverExpiredJob(Long.valueOf(jobId));
+            if(result!=null && result==1L){
+                logger.info("Recovered expired job {}", jobId);
+            }
+        }
     }
 
 }

@@ -6,6 +6,8 @@ public class ExecutionJob {
     private String code;
     private String input;
     private String status="QUEUED";
+    private String leaseToken;
+    
 
     public ExecutionJob(long jobId, String language, String code, String input) {
         this.jobId=jobId;
