@@ -90,7 +90,7 @@ public class DockerExecutionService {
         thread2.start();
         process.getOutputStream().write(input.getBytes(StandardCharsets.UTF_8));
         process.getOutputStream().close();
-        boolean completed = process.waitFor(5, TimeUnit.SECONDS);
+        boolean completed = process.waitFor(10, TimeUnit.SECONDS);
             
         int exitCode;
 
@@ -114,7 +114,7 @@ public class DockerExecutionService {
         } 
         else {
             executionResponse.setSuccess(false);
-            executionResponse.setError("Execution timed out after 5 seconds.");
+            executionResponse.setError("Execution timed out after 90 seconds.");
         }
         bufferReader.close();
         errorReader.close();
