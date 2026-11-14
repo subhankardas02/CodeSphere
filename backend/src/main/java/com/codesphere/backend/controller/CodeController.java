@@ -16,6 +16,7 @@ import com.codesphere.backend.service.DockerExecutionService;
 
 import java.io.IOException;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
+@Profile("api")
 @CrossOrigin(origins = "http://localhost:5173")
 @RestController
 public class CodeController {

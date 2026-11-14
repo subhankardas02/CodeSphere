@@ -1,11 +1,13 @@
 package com.codesphere.backend.controller;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 
+@Profile("api")
 @RestController 
 public class RedisTestController {
     
